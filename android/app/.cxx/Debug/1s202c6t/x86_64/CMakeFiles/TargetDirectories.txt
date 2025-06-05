@@ -1,0 +1,2 @@
+D:/New folder/stroke/android/app/.cxx/Debug/1s202c6t/x86_64/CMakeFiles/edit_cache.dir
+D:/New folder/stroke/android/app/.cxx/Debug/1s202c6t/x86_64/CMakeFiles/rebuild_cache.dir
