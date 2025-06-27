@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../core/providers/setting_provider.dart';
 
 
 class SettingsScreen extends StatefulWidget {
@@ -101,7 +104,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return Consumer<SettingsViewModel>(
+        builder: (context, settings, child) {
+          final isDark = settings.themeMode == ThemeMode.dark;
+
+          return Scaffold(
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -140,23 +147,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Row(
-                    children: const [
+                    children:   [
                       Icon(
-                        Icons.dark_mode_outlined,
-                        color: Colors.black87,
+                      isDark? Icons.dark_mode_outlined:Icons.light_mode,
+                          color:isDark? Colors.black87:Colors.white,
                       ),
                       SizedBox(width: 8),
-                      Text('Dark mode',
+                      Text(isDark? 'Dark mode':'white mode',
                           style: TextStyle(fontSize: 16, color: Colors.black87)),
                     ],
                   ),
                   Switch(
                       activeColor: const Color.fromARGB(255, 0, 148, 160),
-                      value: _darkMode,
+                      value: isDark,
                       onChanged: (bool value) {
-                        setState(() {
-                          _darkMode = value;
-                        });
+                        value==true?
+                        settings.setThemeMode(ThemeMode.dark):
+                        settings.setThemeMode(ThemeMode.light);
                       }),
                 ],
               ),
@@ -252,6 +259,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ],
         ),
       ),
-    );
+    );});
   }
 }

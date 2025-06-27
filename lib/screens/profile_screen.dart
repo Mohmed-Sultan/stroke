@@ -1,107 +1,110 @@
 import 'package:flutter/material.dart';
+import 'package:mohammed_ashraf/screens/main_screen_doc.dart';
+import 'package:provider/provider.dart';
 import 'package:mohammed_ashraf/settings/edit_profile.dart';
 import 'package:mohammed_ashraf/settings/notifications.dart';
 import 'package:mohammed_ashraf/settings/privacy.dart';
 import 'package:mohammed_ashraf/settings/settings.dart';
-import 'package:mohammed_ashraf/features/auth/login.dart';
-import 'package:mohammed_ashraf/screens/main_screen.dart'; // تأكد من استيراد شاشة الصفحة الرئيسية
+import 'package:mohammed_ashraf/screens/main_screen.dart';
+
+import '../features/auth/role_provider.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
   void _showLogoutConfirmationModal(BuildContext context) {
-  showModalBottomSheet(
-    context: context,
-    backgroundColor: Colors.transparent,
-    isScrollControlled: true,
-    builder: (BuildContext context) {
-      return Container(
-        padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(15),
-            topRight: Radius.circular(15),
+    final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (BuildContext context) {
+        return Container(
+          padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(15),
+              topRight: Radius.circular(15),
+            ),
           ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Centered title
-            const Center(
-              child: Text(
-                'Logout',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Center(
+                child: Text(
+                  'Logout',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Are you sure you want to log out?',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 24),
+              const SizedBox(height: 16),
+              const Text(
+                'Are you sure you want to log out?',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 24),
 
-            // Buttons with spacing and full width
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.black,
-                      side: const BorderSide(color: Colors.grey),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.black,
+                        side: const BorderSide(color: Colors.grey),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 14,
+                        ),
                       ),
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 14,
-                      ),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      child: const Text('Cancel'),
                     ),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                    child: const Text('Cancel'),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color.fromARGB(255, 0, 148, 160),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color.fromARGB(255, 0, 148, 160),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 14,
+                        ),
                       ),
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 14,
-                      ),
-                    ),
-                    onPressed: () {
-                      Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(
-                            builder: (context) => LoginScreen()),
-                        (Route<dynamic> route) => false,
-                      );
-                    },
-                    child: const Text('Yes, Logout'),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      );
-    },
-  );
-}
+                      onPressed: () {
 
+                        roleProvider.logout( context);      // Use provider's logout
+                        if(Navigator.canPop(context)){Navigator.pop(context);}
+                      },
+                      child: const Text('Yes, Logout'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final roleProvider = Provider.of<RoleProvider>(context);
+    final user = roleProvider.user;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -114,10 +117,9 @@ class ProfileScreen extends StatelessWidget {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () {
-            // استبدل HomeScreen() بشاشة الصفحة الرئيسية الخاصة بك
             Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(builder: (context) => MainScreen()),
-              (Route<dynamic> route) => false,
+              MaterialPageRoute(builder: (context) => MainScreenDoctor()),
+                  (Route<dynamic> route) => false,
             );
           },
         ),
@@ -141,11 +143,21 @@ class ProfileScreen extends StatelessWidget {
                             shape: BoxShape.circle,
                           ),
                           child: ClipOval(
-                              child: Image.asset(
-                            'assets/images/docimg.png',
-                            height: 250,
-                            fit: BoxFit.cover,
-                          )),
+                            child: user?.profileImg != null
+                                ? Image.network(
+                              user!.profileImg,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Image.asset(
+                                    'assets/images/docimg.png',
+                                    fit: BoxFit.cover,
+                                  ),
+                            )
+                                : Image.asset(
+                              'assets/images/docimg.png',
+                              fit: BoxFit.cover,
+                            ),
+                          ),
                         ),
                         Container(
                           decoration: const BoxDecoration(
@@ -155,25 +167,27 @@ class ProfileScreen extends StatelessWidget {
                           child: const Padding(
                             padding: EdgeInsets.all(4),
                             child:
-                                Icon(Icons.edit, size: 20, color: Colors.white),
+                            Icon(Icons.edit, size: 20, color: Colors.white),
                           ),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Center(
+                  Center(
                     child: Text(
-                      'Mohamed Ali',
-                      style:
-                          TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
+                      user?.firstName != null && user?.lastName != null
+                          ? '${user!.firstName} ${user.lastName}'
+                          : 'Dr. User',
+                      style: const TextStyle(
+                          fontSize: 20, fontWeight: FontWeight.w500),
                     ),
                   ),
                   const SizedBox(height: 4),
-                  const Center(
+                  Center(
                     child: Text(
-                      '+201015******',
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                      user?.phone ?? '+201015******',
+                      style: const TextStyle(fontSize: 14, color: Colors.grey),
                     ),
                   ),
                   const SizedBox(height: 24),

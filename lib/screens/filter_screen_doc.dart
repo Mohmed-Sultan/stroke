@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:mohammed_ashraf/constants/app_colors.dart';
 import 'package:mohammed_ashraf/widgets/filter_button.dart';
+
+import '../features/auth/providers/patient_appointment_filteration_provider.dart';
 
 class FilterScreenDoctor extends StatefulWidget {
   const FilterScreenDoctor({super.key});
@@ -10,10 +13,23 @@ class FilterScreenDoctor extends StatefulWidget {
 }
 
 class _FilterScreenState extends State<FilterScreenDoctor> {
-  String? _selectedGender = 'Male';
-  String? _selectedAge = 'Under 30 years';
-  String? _selectedAppointmentTime = 'Today';
-  String? _selectedAppointmentStatus = 'Pending';
+  // قيم مؤقتة أثناء التعديل
+  String? _tempGender;
+  String? _tempAge;
+  String? _tempAppointmentTime;
+  String? _tempAppointmentStatus;
+
+  @override
+  void initState() {
+    super.initState();
+    final filterProvider = Provider.of<PatientAppointmentFilterationProvider>(context, listen: false);
+
+    // تهيئة القيم المؤقتة بالقيم الحالية
+    _tempGender = filterProvider.getFilter('gender');
+    _tempAge = filterProvider.getFilter('age');
+    _tempAppointmentTime = filterProvider.getFilter('time');
+    _tempAppointmentStatus = filterProvider.getFilter('status');
+  }
 
   Widget _buildFilterSection(String title, List<String> options, String? selectedValue, ValueChanged<String?> onChanged) {
     return Column(
@@ -29,7 +45,7 @@ class _FilterScreenState extends State<FilterScreenDoctor> {
                 color: AppColors.textColor),
           ),
         ),
-        Align( // <--- التعديل هنا
+        Align(
           alignment: Alignment.centerLeft,
           child: Wrap(
             spacing: 10.0,
@@ -55,6 +71,8 @@ class _FilterScreenState extends State<FilterScreenDoctor> {
 
   @override
   Widget build(BuildContext context) {
+    final filterProvider = Provider.of<PatientAppointmentFilterationProvider>(context, listen: false);
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -76,26 +94,26 @@ class _FilterScreenState extends State<FilterScreenDoctor> {
             _buildFilterSection(
               'Patient\'s Gender',
               ['Male', 'Female'],
-              _selectedGender,
-                  (value) => setState(() => _selectedGender = value),
+              _tempGender,
+                  (value) => setState(() => _tempGender = value),
             ),
             _buildFilterSection(
               'Patient\'s Age',
               ['Under 30 years', '30-50 years', 'Above 40 years'],
-              _selectedAge,
-                  (value) => setState(() => _selectedAge = value),
+              _tempAge,
+                  (value) => setState(() => _tempAge = value),
             ),
             _buildFilterSection(
               'Appointments',
               ['Today', 'This Week', 'Next Week', 'This Month'],
-              _selectedAppointmentTime,
-                  (value) => setState(() => _selectedAppointmentTime = value),
+              _tempAppointmentTime,
+                  (value) => setState(() => _tempAppointmentTime = value),
             ),
             _buildFilterSection(
               'Appointment\'s Status',
               ['Pending', 'Confirmed', 'Completed', 'Cancelled'],
-              _selectedAppointmentStatus,
-                  (value) => setState(() => _selectedAppointmentStatus = value),
+              _tempAppointmentStatus,
+                  (value) => setState(() => _tempAppointmentStatus = value),
             ),
             const SizedBox(height: 30),
           ],
@@ -120,10 +138,10 @@ class _FilterScreenState extends State<FilterScreenDoctor> {
               child: OutlinedButton(
                 onPressed: () {
                   setState(() {
-                    _selectedGender = null;
-                    _selectedAge = null;
-                    _selectedAppointmentTime = null;
-                    _selectedAppointmentStatus = null;
+                    _tempGender = null;
+                    _tempAge = null;
+                    _tempAppointmentTime = null;
+                    _tempAppointmentStatus = null;
                   });
                 },
                 style: OutlinedButton.styleFrom(
@@ -144,6 +162,14 @@ class _FilterScreenState extends State<FilterScreenDoctor> {
             Expanded(
               child: ElevatedButton(
                 onPressed: () {
+                  // تطبيق الفلاتر المؤقتة على الموفر المركزي
+                  filterProvider.applyFilters({
+                    'gender': _tempGender,
+                    'age': _tempAge,
+                    'time': _tempAppointmentTime,
+                    'status': _tempAppointmentStatus,
+                  });
+
                   Navigator.of(context).pop();
                 },
                 style: ElevatedButton.styleFrom(

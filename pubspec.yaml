@@ -38,6 +38,14 @@ dependencies:
   provider: ^6.1.1
   country_picker: ^2.0.20
   camera: ^0.10.5+7
+  http: ^1.4.0
+  dio: ^5.8.0+1
+  shared_preferences: ^2.5.3
+  cookie_jar: ^4.0.8
+  dio_cookie_manager: ^3.2.0
+  path_provider: ^2.1.5
+  image_picker: ^1.1.2
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_test:

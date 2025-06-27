@@ -1,23 +1,87 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:mohammed_ashraf/features/auth/register2.dart';
-import 'package:mohammed_ashraf/screens/main_screen_doc.dart';
-import 'package:provider/provider.dart';
 import 'package:mohammed_ashraf/features/auth/forget_password.dart';
 import 'package:mohammed_ashraf/features/auth/register1.dart';
-import 'package:mohammed_ashraf/screens/main_screen.dart';
-import 'package:mohammed_ashraf/screens/doctor_home.dart';
+import 'package:mohammed_ashraf/features/auth/register2.dart';
+import 'package:provider/provider.dart';
 import 'package:mohammed_ashraf/features/auth/role_provider.dart';
 
-class LoginScreen extends StatelessWidget {
-  LoginScreen({super.key});
 
+import '../../core/dio/dio_client.dart';
+import '../../screens/main_screen.dart';
+import '../../screens/main_screen_doc.dart';
+import 'models/user_model.dart';
+
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  bool _isLoading = false;
+  String? _errorMessage;
+  final DioClient dioClient = DioClient();
+
+  Future<void> _login() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final response = await dioClient.dio.post(
+        '/api/v1/auth/login',
+        data: {
+          'email': _emailController.text,
+          'password': _passwordController.text,
+        },
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final responseData = response.data;
+        if (responseData['status'] == 'success') {
+          final user = User.fromJson(responseData['data']);
+
+          await context.read<RoleProvider>().loginSuccess(user, response);
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => user.role == 'Patient'
+                  ? MainScreen()
+                  : MainScreenDoctor(),
+            ),
+          );
+        } else {
+          throw responseData['message'] ?? 'Login failed';
+        }
+      } else {
+        throw 'Login failed: ${response.statusCode}';
+      }
+    } on DioException catch (e) {
+      final errorData = e.response?.data;
+      setState(() {
+        _errorMessage = errorData?['message'] ?? 'Login failed. Please try again.';
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+      });
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final selectedRole = Provider.of<RoleProvider>(context).role;
+    final selectedRole = context.watch<RoleProvider>().role;
 
     return Scaffold(
       body: Padding(
@@ -29,24 +93,24 @@ class LoginScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  const SizedBox(height: 15),
                   const Text(
                     'Login',
                     style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(height: 8),
-                  if (selectedRole != null)
-                    // Text(
-                    //   'You are logging in as: $selectedRole',
-                    //   style: const TextStyle(
-                    //     fontSize: 16,
-                    //     color: Colors.teal,
-                    //     fontWeight: FontWeight.w500,
-                    //   ),
-                    // ),
-                  const SizedBox(height: 24),
-                  Image.asset('assets/images/Logo.png',
-                      height: 200, width: 320),
+                  const SizedBox(height: 10),
+                  Image.asset('assets/images/Logo.png', height: 200, width: 320),
                   const SizedBox(height: 16),
+
+                  if (_errorMessage != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Text(
+                        _errorMessage!,
+                        style: const TextStyle(color: Colors.red, fontSize: 16),
+                      ),
+                    ),
+
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
@@ -83,9 +147,9 @@ class LoginScreen extends StatelessWidget {
                       if (value == null || value.isEmpty) {
                         return 'Password is required';
                       }
-                      if (value.length < 6) {
-                        return 'Password must be at least 6 characters';
-                      }
+                      // if (value.length < 6) {
+                      //   return 'Password must be at least 6 characters';
+                      // }
                       return null;
                     },
                   ),
@@ -108,42 +172,25 @@ class LoginScreen extends StatelessWidget {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () {
-                        if (_formKey.currentState!.validate()) {
-                          if (selectedRole == 'Patient') {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => MainScreen()),
-                            );
-                          } else if (selectedRole == 'Doctor') {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => MainScreenDoctor()),
-                            );
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text(
-                                      'Please select a role before logging in')),
-                            );
-                          }
-                        }
-                      },
+                      onPressed: _isLoading ? null : _login,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            const Color.fromRGBO(27, 132, 153, 0.89),
+                        backgroundColor: const Color.fromRGBO(27, 132, 153, 0.89),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
+                        disabledBackgroundColor: Colors.grey,
                       ),
-                      child: const Text(
+                      child: _isLoading
+                          ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(color: Colors.white),
+                      )
+                          : const Text(
                         'Login',
                         style: TextStyle(
-                            color:
-                                Color.from(alpha: 1, red: 1, green: 1, blue: 1),
+                            color: Colors.white,
                             fontSize: 16),
                       ),
                     ),
@@ -179,7 +226,7 @@ class LoginScreen extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text("Don’t have an account?"),
+                      const Text("Don't have an account?"),
                       TextButton(
                         onPressed: () {
                           if (selectedRole == 'Patient') {
@@ -193,8 +240,7 @@ class LoginScreen extends StatelessWidget {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) =>
-                                    RegistreScreenSecond(), // Assuming it doesn't need a role param
+                                builder: (context) => RegistreScreenSecond(),
                               ),
                             );
                           } else {

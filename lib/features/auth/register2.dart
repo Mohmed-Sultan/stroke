@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:country_picker/country_picker.dart';
 import 'package:mohammed_ashraf/features/auth/login.dart';
+import 'package:mohammed_ashraf/features/auth/providers/register_provider.dart';
+import 'package:provider/provider.dart';
 
 class RegistreScreenSecond extends StatefulWidget {
   const RegistreScreenSecond({super.key});
@@ -11,9 +13,21 @@ class RegistreScreenSecond extends StatefulWidget {
 
 class _RegistreScreenSecondState extends State<RegistreScreenSecond> {
   final _formKey = GlobalKey<FormState>();
+
+  // Controllers
+  final TextEditingController _firstNameController = TextEditingController();
+  final TextEditingController _lastNameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _dateController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
-  String _selectedCountryCode = '+1'; // Default to US
+  final TextEditingController _addressController = TextEditingController();
+  final TextEditingController _feeController = TextEditingController();
+
+  // Dropdown values
+  String? _selectedGender;
+  String? _selectedCountry;
+  String? _selectedAcademicDegree;
 
   Country selectedCountry = Country(
     phoneCode: '1',
@@ -30,18 +44,53 @@ class _RegistreScreenSecondState extends State<RegistreScreenSecond> {
 
   @override
   void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
     _dateController.dispose();
     _phoneController.dispose();
+    _addressController.dispose();
+    _feeController.dispose();
     super.dispose();
+  }
+
+  Future<void> _submitForm(BuildContext context) async {
+    if (_formKey.currentState!.validate()) {
+      final provider = context.read<RegistrationProvider>();
+      provider.clearError();
+
+      final fullPhone = '${selectedCountry.phoneCode}${_phoneController.text}';
+
+      await provider.register(
+        firstName: _firstNameController.text,
+        lastName: _lastNameController.text,
+        email: _emailController.text,
+        password: _passwordController.text,
+        dateOfBirth: _dateController.text,
+        gender: _selectedGender!,
+        phone: fullPhone,
+        country: _selectedCountry!,
+        address: _addressController.text,
+        specialization: _selectedAcademicDegree!,
+        appointmentFee: int.parse(_feeController.text),
+      );
+
+      if (provider.errorMessage == null) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => LoginScreen()),
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<RegistrationProvider>();
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Register'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('Register'), centerTitle: true),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -50,50 +99,56 @@ class _RegistreScreenSecondState extends State<RegistreScreenSecond> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Center(
-                child: Image.asset(
-                  'assets/images/Logo.png',
-                  height: 100,
-                ),
+                child: Image.asset('assets/images/Logo.png', height: 100),
               ),
               const SizedBox(height: 20),
-              _buildTextField('First Name', 'Enter your first name'),
-              _buildTextField('Last Name', 'Enter your last name'),
-              _buildTextField('Email', 'Enter your email', isEmail: true),
+              _buildTextField('First Name', 'Enter first name', _firstNameController),
+              _buildTextField('Last Name', 'Enter last name', _lastNameController),
+              _buildTextField('Email', 'Enter email', _emailController, isEmail: true),
               _buildPasswordField(),
               _buildDatePicker(context),
-              _buildDropdown('Gender', ['Male', 'Female']),
-              _buildPhoneNumberField(), // Country picker + phone field
-              _buildDropdown('Your Country', ['USA', 'Egypt', 'India', 'Canada']),
-              _buildTextField('Address', 'Enter your address'),
-              _buildTextField('National ID', 'Enter your ID'),
-              _buildDropdown('Academic Degree', ['Bachelor', 'Master', 'PhD']),
+              _buildDropdown('Gender', ['Male', 'Female'], (v) => _selectedGender = v),
+              _buildPhoneNumberField(),
+              _buildDropdown('Country', ['USA', 'Egypt', 'India', 'Canada'],
+                      (v) => _selectedCountry = v),
+              _buildTextField('Address', 'Enter address', _addressController),
+              _buildDropdown('Academic Degree', ['Bachelor', 'Master', 'PhD'],
+                      (v) => _selectedAcademicDegree = v),
+              _buildTextField('Appointment Fee', 'Enter fee', _feeController, isNumber: true),
+
+              // Error message display
+              if (provider.errorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    provider.errorMessage!,
+                    style: const TextStyle(color: Colors.red, fontSize: 16),
+                  ),
+                ),
+
               const SizedBox(height: 20),
               Center(
                 child: SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                        String fullPhoneNumber = '$_selectedCountryCode${_phoneController.text}';
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Form submitted with phone: $fullPhoneNumber')),
-                        );
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (context) => LoginScreen()),
-                        );
-                      }
-                    },
+                    onPressed: provider.isLoading ? null : () => _submitForm(context),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       backgroundColor: const Color.fromRGBO(27, 132, 153, 0.89),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
+                      disabledBackgroundColor: Colors.grey,
                     ),
-                    child: const Text(
+                    child: provider.isLoading
+                        ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(color: Colors.white),
+                    )
+                        : const Text(
                       'Register',
-                      style: TextStyle(color: Colors.white),
+                      style: TextStyle(color: Colors.white, fontSize: 16),
                     ),
                   ),
                 ),
@@ -105,11 +160,14 @@ class _RegistreScreenSecondState extends State<RegistreScreenSecond> {
     );
   }
 
-  Widget _buildTextField(String label, String hint, {bool isEmail = false}) {
+  Widget _buildTextField(String label, String hint, TextEditingController controller,
+      {bool isEmail = false, bool isNumber = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: TextFormField(
-        keyboardType: isEmail ? TextInputType.emailAddress : TextInputType.text,
+        controller: controller,
+        keyboardType: isEmail ? TextInputType.emailAddress :
+        isNumber ? TextInputType.number : TextInputType.text,
         decoration: InputDecoration(
           labelText: label,
           hintText: hint,
@@ -120,7 +178,10 @@ class _RegistreScreenSecondState extends State<RegistreScreenSecond> {
             return '$label is required';
           }
           if (isEmail && !RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-            return 'Enter a valid email';
+            return 'Enter valid email';
+          }
+          if (isNumber && int.tryParse(value) == null) {
+            return 'Enter valid number';
           }
           return null;
         },
@@ -132,20 +193,17 @@ class _RegistreScreenSecondState extends State<RegistreScreenSecond> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: TextFormField(
+        controller: _passwordController,
         obscureText: true,
         decoration: const InputDecoration(
           labelText: 'Password',
-          hintText: 'Enter your password',
+          hintText: 'Enter password',
           border: OutlineInputBorder(),
           suffixIcon: Icon(Icons.visibility),
         ),
         validator: (value) {
-          if (value == null || value.isEmpty) {
-            return 'Password is required';
-          }
-          if (value.length < 6) {
-            return 'Password must be at least 6 characters';
-          }
+          if (value == null || value.isEmpty) return 'Password required';
+          if (value.length < 6) return 'At least 6 characters';
           return null;
         },
       ),
@@ -165,50 +223,38 @@ class _RegistreScreenSecondState extends State<RegistreScreenSecond> {
           suffixIcon: Icon(Icons.calendar_today),
         ),
         onTap: () async {
-          DateTime? pickedDate = await showDatePicker(
+          final DateTime? picked = await showDatePicker(
             context: context,
             initialDate: DateTime(2000),
             firstDate: DateTime(1900),
             lastDate: DateTime.now(),
           );
-          if (pickedDate != null) {
+          if (picked != null) {
             setState(() {
               _dateController.text =
-                  "${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}";
+              "${picked.year}-${picked.month.toString().padLeft(2,'0')}"
+                  "-${picked.day.toString().padLeft(2,'0')}";
             });
           }
         },
         validator: (value) {
-          if (value == null || value.isEmpty) {
-            return 'Date of Birth is required';
-          }
+          if (value == null || value.isEmpty) return 'Date required';
           return null;
         },
       ),
     );
   }
 
-  Widget _buildDropdown(String label, List<String> items) {
+  Widget _buildDropdown(String label, List<String> items, ValueChanged<String?> onChanged) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: DropdownButtonFormField<String>(
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-        ),
-        items: items
-            .map((item) => DropdownMenuItem<String>(
-                  value: item,
-                  child: Text(item),
-                ))
-            .toList(),
-        onChanged: (value) {},
-        validator: (value) {
-          if (value == null || value.isEmpty) {
-            return '$label is required';
-          }
-          return null;
-        },
+        decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
+        items: items.map((item) =>
+            DropdownMenuItem(value: item, child: Text(item))
+        ).toList(),
+        onChanged: onChanged,
+        validator: (value) => value == null ? 'Please select $label' : null,
       ),
     );
   }
@@ -219,18 +265,13 @@ class _RegistreScreenSecondState extends State<RegistreScreenSecond> {
       child: Row(
         children: [
           GestureDetector(
-            onTap: () {
-              showCountryPicker(
-                context: context,
-                showPhoneCode: true,
-                onSelect: (Country country) {
-                  setState(() {
-                    selectedCountry = country;
-                    _selectedCountryCode = '+${country.phoneCode}';
-                  });
-                },
-              );
-            },
+            onTap: () => showCountryPicker(
+              context: context,
+              showPhoneCode: true,
+              onSelect: (Country country) {
+                setState(() => selectedCountry = country);
+              },
+            ),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 15),
               decoration: BoxDecoration(
@@ -252,15 +293,13 @@ class _RegistreScreenSecondState extends State<RegistreScreenSecond> {
               keyboardType: TextInputType.phone,
               decoration: const InputDecoration(
                 labelText: 'Mobile Phone',
-                hintText: 'Enter your phone number',
+                hintText: 'Enter phone number',
                 border: OutlineInputBorder(),
               ),
               validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Phone number is required';
-                }
+                if (value == null || value.isEmpty) return 'Phone required';
                 if (!RegExp(r'^[0-9]{6,15}$').hasMatch(value)) {
-                  return 'Enter a valid phone number';
+                  return 'Enter valid number';
                 }
                 return null;
               },

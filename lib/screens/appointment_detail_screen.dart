@@ -134,7 +134,7 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
         padding: const EdgeInsets.only(left: 20.0, right: 20.0, bottom: 20.0, top: 10.0),
         child: ElevatedButton(
           onPressed: () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => PatientReportScreen(patientName: widget.patientName)));
+            Navigator.push(context, MaterialPageRoute(builder: (context) => PatientReportScreen(patientId: widget.patientName)));
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primaryColor,
